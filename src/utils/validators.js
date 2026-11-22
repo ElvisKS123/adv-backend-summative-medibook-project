@@ -78,13 +78,14 @@ function checkSlotRules(date, now = new Date()) {
     return 'Appointments can only be booked in the future';
   }
   if (date.getSeconds() !== 0 || date.getMinutes() % SLOT_MINUTES !== 0) {
-    return `Appointments must start on a ${SLOT_MINUTES}-minute boundary (e.g. 09:00 or 09:30)`;
+    return `Appointments must start on a ${SLOT_MINUTES}-minute boundary`;
   }
   const startMinute = date.getHours() * 60 + date.getMinutes();
   const isTooEarly = startMinute < OPENING_HOUR * 60;
   const endsTooLate = startMinute + SLOT_MINUTES > CLOSING_HOUR * 60;
   if (isTooEarly || endsTooLate) {
-    return 'Appointments must be within working hours 09:00-17:00 (last slot starts at 16:30)';
+    const hour = (h) => `${String(h).padStart(2, '0')}:00`;
+    return `Appointments must be within working hours ${hour(OPENING_HOUR)}-${hour(CLOSING_HOUR)}`;
   }
   return null;
 }
