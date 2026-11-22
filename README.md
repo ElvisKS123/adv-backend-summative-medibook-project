@@ -128,3 +128,75 @@ Create a **simple HTML page** (served by your Express app at `GET /feedback`) co
 - A short **viva/demo (10 minutes)** walkthrough.
 
 **Automatic penalties:** SQL injection vector anywhere in the app (−15), secrets committed to the repo (−5), app does not start per README instructions (−10), work the student cannot explain in the video (or at a follow-up viva if called) | Academic integrity referral; affected criteria re-scored at Developing or below |
+
+---
+
+# My Implementation
+
+MediBook API built with Node.js, Express, MySQL and Redis.
+
+The database diagram is in `schema-diagram.pdf` and the database scripts are in the `database` folder.
+
+## How to run it
+
+You need Node.js, MySQL 8 and Redis running on your computer (on Windows I used Memurai for Redis).
+
+1. Install the packages:
+   ```bash
+   npm install
+   ```
+2. Run `database/schema.sql` and then `database/seed.sql` in MySQL (I used MySQL Workbench).
+3. Copy `.env.example` to `.env` and put your MySQL password in it.
+4. Start the API:
+   ```bash
+   npm start
+   ```
+5. In a second terminal, start the worker:
+   ```bash
+   npm run worker
+   ```
+6. Run the tests (they do not need MySQL or Redis):
+   ```bash
+   npm test
+   ```
+
+The seed data uses dates from the day you run it. Dr. Boateng has 11 of 12 slots booked 3 days later, and Dr. Asante has no appointments.
+
+## Endpoints
+
+| Method | URL | What it does |
+|---|---|---|
+| GET, POST | `/api/patients` | List or create patients |
+| GET, PUT, DELETE | `/api/patients/:id` | Get, update or delete a patient |
+| GET, POST | `/api/doctors` | List or create doctors |
+| GET, PUT, DELETE | `/api/doctors/:id` | Get, update or delete a doctor |
+| GET | `/api/doctors/:id/stats` | Doctor statistics |
+| POST | `/api/appointments` | Book an appointment |
+| GET | `/api/appointments/:id` | Get an appointment |
+| DELETE | `/api/appointments/:id` | Cancel an appointment |
+| POST | `/api/waitlist` | Join the waitlist |
+| GET | `/api/reports/doctors` | Doctors report |
+| GET | `/api/reports/busy-days` | Busy days report |
+| GET | `/feedback?lang=fr` | Feedback page (English by default) |
+
+## My design choices
+
+### Booking (Part C)
+- Time rules (future, 09:00 to 17:00, every 30 minutes) return 422. The last slot is 16:30 so it ends at 17:00.
+- To stop two patients getting the same slot, the table has `UNIQUE (doctor_id, active_slot)`. `active_slot` is the appointment time when it is booked and NULL when it is cancelled, so a cancelled slot can be booked again.
+- For the 12 per day limit, the booking runs in a transaction and locks the doctor row first (`SELECT ... FOR UPDATE`), so two bookings cannot pass the count at the same time.
+- The price is taken from the doctor's fee, not from the request.
+
+### Cancelling (Part C)
+- Cancelling does not delete the row. It saves the status, the cancel time and the refund in one update inside a transaction, so the refund history is kept.
+- Refund: more than 48 hours = 100%, 24 to 48 hours (both included) = 50%, less than 24 hours = 0%.
+
+### Audit log (Part D)
+- Every booking and cancellation is added to `logs/audit.log` as one JSON line using `fs/promises` (no Sync functions).
+- The `logs` folder is created if it is missing. If writing the log fails, the error is only printed, so the booking still works.
+
+### Waitlist and worker (Part E)
+- If the slot or the day is full, the API returns 409 and offers the waitlist. The patient is added to a Redis list for that doctor and day.
+- Cancelling adds a job to a Redis queue. The worker (a separate process) takes the first patient from the waitlist and books them.
+- I use `LMOVE` so the patient is never lost: if the booking fails they go back to the front of the list, if the patient was deleted they go to a failed list, and if the worker crashes they are put back when it starts again.
+- Every booking also adds a confirmation job, and the worker writes the message to the audit log.
