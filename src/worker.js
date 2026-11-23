@@ -19,7 +19,11 @@ async function sendConfirmation(data) {
 
 async function returnToWaitlist(entry) {
   const { doctor_id, day } = JSON.parse(entry);
-  await redis.multi().lPush(waitlistKey(doctor_id, day), entry).lRem(WAITLIST_PROCESSING, 1, entry).exec();
+  await redis
+    .multi()
+    .lPush(waitlistKey(doctor_id, day), entry)
+    .lRem(WAITLIST_PROCESSING, 1, entry)
+    .exec();
 }
 
 async function promoteFromWaitlist({ doctor_id, appt_datetime }) {
@@ -41,7 +45,11 @@ async function promoteFromWaitlist({ doctor_id, appt_datetime }) {
       await logEvent('WAITLIST_PROMOTION_FAILED', { patient_id, doctor_id, appt_datetime, reason: err.message });
 
       if (err.status === 404) {
-        await redis.multi().rPush(WAITLIST_FAILED, entry).lRem(WAITLIST_PROCESSING, 1, entry).exec();
+        await redis
+          .multi()
+          .rPush(WAITLIST_FAILED, entry)
+          .lRem(WAITLIST_PROCESSING, 1, entry)
+          .exec();
       } else {
         await returnToWaitlist(entry);
         return;

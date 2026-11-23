@@ -19,8 +19,11 @@ async function joinWaitlist(req, res) {
   today.setHours(0, 0, 0, 0);
   if (date < today) throw new HttpError(422, 'Cannot join a waitlist for a past day');
 
-  if (!(await patientModel.findById(patientId))) throw new HttpError(404, 'Patient not found');
-  if (!(await doctorModel.findById(doctorId))) throw new HttpError(404, 'Doctor not found');
+  const patient = await patientModel.findById(patientId);
+  if (!patient) throw new HttpError(404, 'Patient not found');
+
+  const doctor = await doctorModel.findById(doctorId);
+  if (!doctor) throw new HttpError(404, 'Doctor not found');
 
   const position = await queueService.addToWaitlist(patientId, doctorId, day);
   res.status(201).json({ message: 'Added to the waitlist', patient_id: patientId, doctor_id: doctorId, day, position });

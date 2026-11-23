@@ -2,10 +2,14 @@ const locales = {
   en: require('../../locales/en.json'),
   fr: require('../../locales/fr.json'),
 };
+const SUPPORTED_LANGS = ['en', 'fr'];
 const DEFAULT_LANG = 'en';
 
 function pickLanguage(lang) {
-  return typeof lang === 'string' && Object.hasOwn(locales, lang) ? lang : DEFAULT_LANG;
+  if (SUPPORTED_LANGS.includes(lang)) {
+    return lang;
+  }
+  return DEFAULT_LANG;
 }
 
 function showFeedbackForm(req, res) {
