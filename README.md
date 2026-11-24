@@ -137,6 +137,8 @@ MediBook API built with Node.js, Express, MySQL and Redis.
 
 The database diagram is in `schema-diagram.pdf` and the database scripts are in the `database` folder.
 
+**Video walkthrough:** [Watch the video on Google Drive](https://drive.google.com/file/d/1eQzy0lIVCk-JnR2FOWl8qF-r6Wr1Apk1/view?usp=sharing)
+
 ## How to run it
 
 You need Node.js, MySQL 8 and Redis running on your computer (on Windows I used Memurai for Redis).
